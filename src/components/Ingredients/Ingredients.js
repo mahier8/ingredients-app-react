@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 
 import IngredientList from './IngredientList'; //used below int he IngredientsForm
 import IngredientForm from './IngredientForm';
@@ -7,6 +7,14 @@ import Search from './Search';
 const Ingredients = () => {
   const [ userIngredients, setUserIngredients ] = useState([]);
   // he used an empty array in the useState because we will output a list 
+
+  useEffect(() => {
+    console.log('RENDERING INGREDIENTS', userIngredients)
+  }, [userIngredients]);
+
+  const filteredIngredientsHandler = useCallback((filteredIngredients) => {
+    setUserIngredients(filteredIngredients);
+  }, []);
 
   const addIngredientHandler = (ingredient) => {
     fetch('https://react-ingredients-app-51469-default-rtdb.asia-southeast1.firebasedatabase.app/ingredients.json', {
@@ -35,7 +43,9 @@ const Ingredients = () => {
     <div className="App">
       <IngredientForm onAddIngredient={addIngredientHandler} />   
       <section>
-        <Search />
+        <Search 
+          onLoadedIngredients={filteredIngredientsHandler}
+        />
         <IngredientList 
         ingredients={userIngredients} //this prop comes from the IngredientsList, which was imported 
         onRemoveItem={removeIngredientsHandler}
