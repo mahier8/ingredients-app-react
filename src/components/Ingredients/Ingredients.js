@@ -22,8 +22,16 @@ const ingredientReducer = (currentIngredients, action) => {
 
 const Ingredients = () => {
   // useReducer takes our reducer function and an optional sect argument(the starting state)
-  const [userIngredients, disapatch] = useReducer(ingredientReducer, []);
-  const {isLoading, error, data, sendRequest} = useHttp();
+  const [userIngredients, dispatch] = useReducer(ingredientReducer, []);
+  const {
+    isLoading, 
+    error, 
+    data, 
+    sendRequest, 
+    reqExtra, 
+    reqIdentifier, 
+    clear
+  } = useHttp();
 
   // const [ userIngredients, setUserIngredients ] = useState([]);
   // he used an empty array in the useState because we will output a list 
@@ -33,15 +41,30 @@ const Ingredients = () => {
   // nothing is passed in because we have no error
 
   useEffect(() => {
-    console.log('RENDERING INGREDIENTS', userIngredients)
-  }, [userIngredients]);
+    if (!isLoading && !error && reqIdentifier === 'REMOVE_INGREDIENT') {
+      dispatch({type: 'DELETE', id: reqExtra})
+    } else if (!isLoading && !error && reqIdentifier === 'ADD_INGREDIENT') {
+      dispatch({
+        type: 'ADD',
+        ingredient: {id: data.name, ...reqExtra}
+      });
+    }
+  }, [data, reqExtra, reqIdentifier, isLoading, error]);
 
   const filteredIngredientsHandler = useCallback((filteredIngredients) => {
     // setUserIngredients(filteredIngredients);
-    disapatch({type: 'SET', ingredients: filteredIngredients});
+    dispatch({type: 'SET', ingredients: filteredIngredients});
   }, []);
 
   const addIngredientHandler = useCallback((ingredient) => {
+    sendRequest(
+      'https://react-ingredients-app-51469-default-rtdb.asia-southeast1.firebasedatabase.app/ingredients.json', 
+      'POST', 
+      JSON.stringify(ingredient),
+      ingredient,
+      'ADD_INGREDIENT'
+      );
+    }, [sendRequest]);
     // dispatchHttp({type: 'SEND'});
     // fetch('https://react-ingredients-app-51469-default-rtdb.asia-southeast1.firebasedatabase.app/ingredients.json', {
     // method: 'POST',
@@ -61,18 +84,20 @@ const Ingredients = () => {
     //    ingredient: {id: responseData.name, ...ingredient}
     //   });
     // });  
-  }, []);
+ 
 
-  const removeIngredientsHandler = useCallback((ingredientId) => {
+  const removeIngredientsHandler = useCallback(
+    (ingredientId) => {
     sendRequest(
       `https://react-ingredients-app-51469-default-rtdb.asia-southeast1.firebasedatabase.app/ingredients/${ingredientId}.json`, 
-      'DELETE'
+      'DELETE',
+      null,
+      ingredientId,
+      'REMOVE_INGREDIENT'
     );
-  }, [sendRequest]);
-
-  const clearError = useCallback(() => {
-    // dispatchHttp({type: 'CLEAR'});
-  }, []);
+  }, 
+  [sendRequest]
+  );
 
   const ingredientList = useMemo(() => {
     return (
@@ -85,21 +110,19 @@ const Ingredients = () => {
 
   return (
     <div className="App">
-    {error && (
-    <ErrorModal onClose={clearError}>{error}</ErrorModal>
-    )}
+    {error && <ErrorModal onClose={clear}>{error}</ErrorModal>}
+
       <IngredientForm 
       onAddIngredient={addIngredientHandler}
       loading={isLoading}
       />   
+
       <section>
-        <Search 
-          onLoadedIngredients={filteredIngredientsHandler}
-        />
+        <Search onLoadedIngredients={filteredIngredientsHandler} />
         {ingredientList}
       </section>
     </div>
   );
-}
+};
 
 export default Ingredients;
